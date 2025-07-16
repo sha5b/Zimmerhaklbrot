@@ -7,7 +7,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"start": "node build/index.js",
+		"start": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -35,8 +35,5 @@
 	"dependencies": {
 		"@types/three": "^0.178.1",
 		"three": "^0.178.0"
-	},
-	"engines": {
-		"node": ">=20.19.0"
 	}
 }
