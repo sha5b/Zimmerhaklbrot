@@ -3,40 +3,40 @@ uniform sampler2D u_scene;
 uniform sampler2D u_char_map;
 uniform vec2 u_resolution;
 
-const float CHAR_MAP_SIZE = 16.0; // 16x16 grid of characters
-const vec2 CHAR_SIZE = vec2(10.0, 16.0); // Pixel dimensions of each character
+const float CHAR_COUNT = 65.0; // Number of characters in our map
+const vec2 CHAR_SIZE = vec2(10.0, 16.0); // The size of each character cell on screen
 
 float get_brightness(vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
 void main() {
-    // Get the color and brightness of the corresponding block in the original scene
-    vec3 scene_color = texture2D(u_scene, vUv).rgb;
-    float brightness = get_brightness(scene_color);
+    // --- Block-level calculations ---
+    // Calculate the UV for the top-left of the current character block
+    vec2 block_uv = floor(vUv * u_resolution / CHAR_SIZE) * CHAR_SIZE / u_resolution;
+    // Sample the scene texture at the center of the block to get its average color and brightness
+    vec3 block_color = texture2D(u_scene, block_uv + CHAR_SIZE / u_resolution * 0.5).rgb;
+    float brightness = get_brightness(block_color);
 
-    // Determine which character to use from the map based on brightness
-    float char_index = floor(brightness * (CHAR_MAP_SIZE * CHAR_MAP_SIZE - 1.0));
-
-    // Calculate the column and row of the character in the map
-    float char_col = mod(char_index, CHAR_MAP_SIZE);
-    float char_row = floor(char_index / CHAR_MAP_SIZE);
-
-    // Calculate the UV coordinates for the top-left corner of the selected character
-    vec2 char_uv = vec2(char_col / CHAR_MAP_SIZE, char_row / CHAR_MAP_SIZE);
-
-    // Calculate the UV coordinates within the current character cell on the screen
+    // --- Character selection ---
+    // Map the brightness to an index in our 1D character map
+    float char_index = floor(brightness * (CHAR_COUNT - 1.0));
+    
+    // --- Pixel-level calculations ---
+    // Calculate the UV coordinate *within* the current character block
     vec2 local_uv = mod(vUv * u_resolution, CHAR_SIZE) / CHAR_SIZE;
+    
+    // Calculate the UV to sample the correct character from the 1D character map texture
+    // We add local_uv.x to move across the character's pixels
+    float char_map_u = (char_index + local_uv.x) / CHAR_COUNT;
+    vec2 char_uv = vec2(char_map_u, local_uv.y);
 
-    // Scale the local UVs to match the size of a single character in the texture map
-    local_uv /= CHAR_MAP_SIZE;
+    // Sample the character texture to see if this pixel should be drawn
+    float char_alpha = texture2D(u_char_map, char_uv).r;
 
-    // Combine the character's map position with the local pixel position
-    vec2 final_uv = char_uv + local_uv;
+    // Discard pixels that are not part of the character
+    if (char_alpha < 0.5) discard;
 
-    // Sample the character map to get the character's pixel value (alpha)
-    float char_alpha = texture2D(u_char_map, final_uv).r;
-
-    // Final color is the original scene color multiplied by the character's alpha
-    gl_FragColor = vec4(scene_color * char_alpha, 1.0);
+    // Output the final color, which is the uniform color of the entire block
+    gl_FragColor = vec4(block_color, 1.0);
 }

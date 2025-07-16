@@ -21,26 +21,61 @@
     // Mandelbrot Scene (Pass 1)
     const mandelbrotScene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const planeGeometry = new THREE.PlaneGeometry(2, 2);
     const interestingPoints = [
-        new THREE.Vector2(-0.743643887037151, 0.131825904205330), // Seahorse Valley
-        new THREE.Vector2(-0.16, 1.0405), // A nice spiral
-        new THREE.Vector2(0.274, 0.006), // A detailed region
-        new THREE.Vector2(-1.749, 0.001), // A minibrot
-        new THREE.Vector2(0.42, 0.21) // Another interesting spot
+        new THREE.Vector2(-0.743643887037151, 0.131825904205330),   // Main Seahorse Valley
+        new THREE.Vector2(-0.160, 1.0405),                          // Spiral region
+        new THREE.Vector2(0.274, 0.006),                            // Detailed island
+        new THREE.Vector2(-1.749, 0.001),                           // Minibrot
+        new THREE.Vector2(0.42, 0.21),                              // Another interesting spot
+        new THREE.Vector2(-0.75, 0.11),                             // Triple spiral valley
+        new THREE.Vector2(-1.25066, 0.3775),                        // A beautiful spiral
+        new THREE.Vector2(0.282, 0.53),                             // Antennae-like structures
+        new THREE.Vector2(-0.4, 0.6),                               // Elephant valley
+        new THREE.Vector2(-1.77, 0.0),                              // Another minibrot
+        new THREE.Vector2(-0.158, -1.034),                         // Mirrored spiral
+        new THREE.Vector2(0.355, 0.355),                            // Quad-spiral
+        new THREE.Vector2(-0.77568377, 0.13646737),                 // Deep seahorse
+        new THREE.Vector2(-0.745428, 0.113009),                     // Original interesting point
+        new THREE.Vector2(0.275, 0.48)                              // Star-like feature
     ];
-    const randomPoint = interestingPoints[Math.floor(Math.random() * interestingPoints.length)];
+    let activeLayer = 0;
+    const cycleDuration = 20; // seconds
+    const fadeDuration = 5; // seconds
 
-    const mandelbrotUniforms = {
-      u_time: { value: 0.0 },
-      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-      u_offset: { value: randomPoint }
-    };
-    const mandelbrotMaterial = new THREE.ShaderMaterial({
-      vertexShader: mandelbrotVert,
-      fragmentShader: mandelbrotFrag,
-      uniforms: mandelbrotUniforms,
-    });
-    mandelbrotScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mandelbrotMaterial));
+    function createMandelbrotLayer(startIndex: number) {
+        const uniforms = {
+            u_time: { value: 0.0 },
+            u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+            u_offset: { value: interestingPoints[startIndex] },
+            u_opacity: { value: 1.0 }
+        };
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: mandelbrotVert,
+            fragmentShader: mandelbrotFrag,
+            uniforms: uniforms,
+            transparent: true
+        });
+
+        const plane = new THREE.Mesh(planeGeometry, material);
+        plane.visible = false;
+        mandelbrotScene.add(plane);
+
+        return { plane, material, uniforms };
+    }
+
+    function getNextPointIndex(currentIndex: number) {
+        return (currentIndex + 1) % interestingPoints.length;
+    }
+
+    // Initialize layers
+    const initialIndex = Math.floor(Math.random() * interestingPoints.length);
+    const layers = [
+        createMandelbrotLayer(initialIndex),
+        createMandelbrotLayer(getNextPointIndex(initialIndex))
+    ];
+    layers[0].plane.visible = true;
 
     // Create a render target to hold the Mandelbrot texture
     const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
@@ -49,43 +84,21 @@
     const asciiScene = new THREE.Scene();
 
     // --- High-Resolution Character Map Generation ---
-    const charMap = [
-        ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@', '&', '$', 'W', 'M', 'B', 'Q',
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-        'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
-        'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-        'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '(', ')',
-        '[', ']', '{', '}', '<', '>', '/', '\\', '|', '_', '"', "'", '`', '~', ',', ';',
-        '!', '?', '^', '°', '§', '€', '£', '¥', '©', '®', '™', '±', '÷', '×', '∞', 'µ',
-        'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'ν', 'ξ', 'ο', 'π', 'ρ',
-        'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω', 'Γ', 'Δ', 'Θ', 'Λ', 'Ξ', 'Π', 'Σ', 'Φ', 'Ψ',
-        'Ω', '∫', '∮', '∂', '∇', '√', '∛', '∜', '∝', '∑', '∏', '∐', '∔', '∯', '∰', '∱',
-        '░', '▒', '▓', '█', '▄', '▀', '■', '□', '▪', '▫', '●', '○', '◆', '◇', '★', '☆',
-        '←', '↑', '→', '↓', '↔', '↕', '↖', '↗', '↘', '↙', '↨', '↬', '↭', '↮', '↯', '↰',
-        '↱', '↲', '↳', '↴', '↵', '↶', '↷', '↸', '↹', '↺', '↻', '↼', '↽', '↾', '↿', '⇀',
-        '⇁', '⇂', '⇃', '⇄', '⇅', '⇆', '⇇', '⇈', '⇉', '⇊', '⇋', '⇌', '⇍', '⇎', '⇏', '⇐',
-        '⇑', '⇒', '⇓', '⇔', '⇕', '⇖', '⇗', '⇘', '⇙', '⇚', '⇛', '⇜', '⇝', '⇞', '⇟', '⇠',
-        '⇡', '⇢', '⇣', '⇤', '⇥', '⇦', '⇧', '⇨', '⇩', '⇪', '⇫', '⇬', '⇭', '⇮', '⇯', '⇰'
-    ].join('');
-
+    // New 'hacker/leet' character set, sorted by visual density
+    const charMap = '`.,\':;!|i-_~"^<>()[]{}?r/\*17JczunvjxtfL\CYE52F3Z469APX0$&%#@WMB'.split('').join(' ');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    const charSize = 32; // Higher resolution for each character
-    const mapSize = 16;
-    canvas.width = charSize * mapSize;
-    canvas.height = charSize * mapSize;
+    const fontSize = 24;
+    const charCount = (charMap.length + 1) / 2;
 
+    canvas.width = charCount * fontSize;
+    canvas.height = fontSize;
     ctx.fillStyle = 'white';
-    ctx.font = `${charSize * 0.8}px monospace`;
+    ctx.font = `${fontSize}px monospace`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    for (let i = 0; i < 256; i++) {
-        const char = charMap[i] || ' ';
-        const x = (i % mapSize) * charSize + charSize / 2;
-        const y = Math.floor(i / mapSize) * charSize + charSize / 2;
-        ctx.fillText(char, x, y);
-    }
+    ctx.fillText(charMap, canvas.width / 2, canvas.height / 2);
 
     const charMapTexture = new THREE.CanvasTexture(canvas);
     charMapTexture.minFilter = THREE.LinearFilter;
@@ -103,26 +116,63 @@
     });
     asciiScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), asciiMaterial));
 
-    function animate() {
+    const animate = () => {
       requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
-      mandelbrotUniforms.u_time.value = elapsedTime;
+
+      const delta = clock.getDelta();
+      const mainLayer = layers[activeLayer];
+      const secondaryLayer = layers[1 - activeLayer];
+
+      // Update time for the main layer
+      mainLayer.uniforms.u_time.value += delta;
+
+      const cycleTime = mainLayer.uniforms.u_time.value;
+
+      // Check if it's time to start the cross-fade
+      if (cycleTime > cycleDuration - fadeDuration && !secondaryLayer.plane.visible) {
+          // Start the next layer's animation
+          secondaryLayer.plane.visible = true;
+          secondaryLayer.uniforms.u_time.value = 0;
+          secondaryLayer.uniforms.u_opacity.value = 0;
+      }
+
+      // Handle the cross-fade
+      if (secondaryLayer.plane.visible) {
+          secondaryLayer.uniforms.u_time.value += delta;
+          const fadeProgress = (cycleTime - (cycleDuration - fadeDuration)) / fadeDuration;
+          mainLayer.uniforms.u_opacity.value = 1.0 - fadeProgress;
+          secondaryLayer.uniforms.u_opacity.value = fadeProgress;
+
+          // Check if the fade is complete
+          if (fadeProgress >= 1.0) {
+              // Switch active layer
+              mainLayer.plane.visible = false;
+              mainLayer.uniforms.u_time.value = 0;
+              mainLayer.uniforms.u_opacity.value = 1.0;
+              // Get a new point for the now-hidden layer
+              const currentPointIndex = interestingPoints.indexOf(secondaryLayer.uniforms.u_offset.value);
+              mainLayer.uniforms.u_offset.value = interestingPoints[getNextPointIndex(currentPointIndex)];
+
+              activeLayer = 1 - activeLayer;
+          }
+      }
 
       // 1. Render Mandelbrot to texture
       renderer.setRenderTarget(renderTarget);
       renderer.render(mandelbrotScene, camera);
 
-      // 2. Render ASCII effect to screen
+      // 2. Render ASCII to screen
       renderer.setRenderTarget(null);
       renderer.render(asciiScene, camera);
-    }
+    };
 
     animate();
 
     const handleResize = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderTarget.setSize(window.innerWidth, window.innerHeight);
-      mandelbrotUniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+      layers[0].uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+      layers[1].uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
       asciiUniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
     };
 

@@ -3,6 +3,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 
 uniform vec2 u_offset;
+uniform float u_opacity;
 const int MAX_ITER = 500;
 
 // HSV to RGB color conversion
@@ -16,7 +17,8 @@ void main() {
     vec2 uv = (vUv - 0.5) * 2.0;
     uv.x *= u_resolution.x / u_resolution.y;
 
-    float zoom = pow(0.85, u_time);
+    // Faster zoom speed
+    float zoom = pow(0.70, u_time);
     vec2 c = uv * zoom + u_offset;
     vec2 z = vec2(0.0);
     float i = 0.0;
@@ -29,21 +31,18 @@ void main() {
         }
     }
 
+    vec3 color;
     if (i == 0.0) {
-        // Give the inside of the set a dark, pulsing color
-        float pulse = 0.1 + 0.1 * sin(u_time * 0.5);
-        gl_FragColor = vec4(0.0, pulse * 0.2, pulse * 0.4, 1.0);
+        // Inside the set: a dark, shimmering version of the current palette
+        float hue = fract(u_time * 0.02);
+        color = hsv2rgb(vec3(hue, 0.8, 0.15));
     } else {
-        // Smooth iteration count for continuous coloring
+        // Outside the set: the main vibrant coloring
         float i_smooth = i + 1.0 - log(log(length(z))) / log(2.0);
-
-        // Create a vibrant, cycling color palette using HSV
-        float hue = fract(i_smooth * 0.015 + u_time * 0.1);
-        float saturation = 0.8;
+        float hue = fract(i_smooth * 0.015 + u_time * 0.02);
+        float saturation = 0.9;
         float value = 0.9;
-
-        vec3 color = hsv2rgb(vec3(hue, saturation, value));
-
-        gl_FragColor = vec4(color, 1.0);
+        color = hsv2rgb(vec3(hue, saturation, value));
     }
+    gl_FragColor = vec4(color, u_opacity);
 }
