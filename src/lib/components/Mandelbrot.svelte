@@ -153,8 +153,11 @@
               mainLayer.uniforms.u_time.value = 0;
               mainLayer.uniforms.u_opacity.value = 1.0;
               // Get a new point for the now-hidden layer
-              const currentPointIndex = interestingPoints.indexOf(secondaryLayer.uniforms.u_offset.value);
-              mainLayer.uniforms.u_offset.value = interestingPoints[getNextPointIndex(currentPointIndex)];
+              // This creates the "seamless" illusion by making the new location a minibrot of the old one.
+              const currentPoint = secondaryLayer.uniforms.u_offset.value;
+              const newPoint = new THREE.Vector2(-0.745428, 0.113009); // A well-known minibrot location
+              mainLayer.uniforms.u_offset.value = currentPoint.clone().add(newPoint.divideScalar(Math.pow(2.0, cycleDuration * 0.5)));
+              mainLayer.uniforms.u_color_offset.value = Math.random();
 
               activeLayer = 1 - activeLayer;
           }
