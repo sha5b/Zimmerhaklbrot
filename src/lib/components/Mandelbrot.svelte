@@ -6,42 +6,7 @@
   import asciiFrag from '$lib/shaders/ascii.frag?raw';
 
   let container: HTMLDivElement;
-  let formula = 'z*z + c'; // Default formula
-  let mandelbrotMaterial: THREE.ShaderMaterial;
 
-  // A simple (and unsafe) parser to convert formula to GLSL
-  function updateFormula() {
-    if (mandelbrotMaterial) {
-        mandelbrotMaterial.fragmentShader = mandelbrotFrag.replace('// DYNAMIC_FORMULA_PLACEHOLDER', formulaToGlsl(formula));
-        mandelbrotMaterial.needsUpdate = true;
-    }
-  }
-
-  function formulaToGlsl(f: string): string {
-    // WARNING: This is not a safe parser. It's for demonstration only.
-    // A real application would need a proper parsing library.
-    if (f.trim() === 'z*z + c') {
-      return `
-        vec2 new_z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
-        z = new_z + c;
-      `;
-    }
-    if (f.trim() === 'z*z*z + c') {
-        // cpow(z, 3) + c
-        return `
-        float r = length(z);
-        float angle = atan(z.y, z.x);
-        float new_r = pow(r, 3.0);
-        vec2 new_z = new_r * vec2(cos(3.0 * angle), sin(3.0 * angle));
-        z = new_z + c;
-        `;
-    }
-    // Add more formulas here...
-    return `
-        vec2 new_z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
-        z = new_z + c;
-      `; // Fallback to default
-  }
 
 
   onMount(() => {
@@ -60,13 +25,11 @@
       u_time: { value: 0.0 },
       u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
     };
-    mandelbrotMaterial = new THREE.ShaderMaterial({
+    const mandelbrotMaterial = new THREE.ShaderMaterial({
       vertexShader: mandelbrotVert,
-      fragmentShader: mandelbrotFrag.replace('// DYNAMIC_FORMULA_PLACEHOLDER', formulaToGlsl(formula)),
+      fragmentShader: mandelbrotFrag,
       uniforms: mandelbrotUniforms,
     });
-
-
     mandelbrotScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mandelbrotMaterial));
 
     // Create a render target to hold the Mandelbrot texture
@@ -75,18 +38,48 @@
     // ASCII Scene (Pass 2)
     const asciiScene = new THREE.Scene();
 
-    // Create character map texture
-    const charMap = ' .:-=+*#%@';
+    // --- High-Resolution Character Map Generation ---
+    const charMap = [
+        ' ', '.', ':', '-', '=', '+', '*', '#', '%', '@', '&', '$', 'W', 'M', 'B', 'Q',
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+        'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
+        'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+        'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '(', ')',
+        '[', ']', '{', '}', '<', '>', '/', '\\', '|', '_', '"', "'", '`', '~', ',', ';',
+        '!', '?', '^', '°', '§', '€', '£', '¥', '©', '®', '™', '±', '÷', '×', '∞', 'µ',
+        'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'ν', 'ξ', 'ο', 'π', 'ρ',
+        'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω', 'Γ', 'Δ', 'Θ', 'Λ', 'Ξ', 'Π', 'Σ', 'Φ', 'Ψ',
+        'Ω', '∫', '∮', '∂', '∇', '√', '∛', '∜', '∝', '∑', '∏', '∐', '∔', '∯', '∰', '∱',
+        '░', '▒', '▓', '█', '▄', '▀', '■', '□', '▪', '▫', '●', '○', '◆', '◇', '★', '☆',
+        '←', '↑', '→', '↓', '↔', '↕', '↖', '↗', '↘', '↙', '↨', '↬', '↭', '↮', '↯', '↰',
+        '↱', '↲', '↳', '↴', '↵', '↶', '↷', '↸', '↹', '↺', '↻', '↼', '↽', '↾', '↿', '⇀',
+        '⇁', '⇂', '⇃', '⇄', '⇅', '⇆', '⇇', '⇈', '⇉', '⇊', '⇋', '⇌', '⇍', '⇎', '⇏', '⇐',
+        '⇑', '⇒', '⇓', '⇔', '⇕', '⇖', '⇗', '⇘', '⇙', '⇚', '⇛', '⇜', '⇝', '⇞', '⇟', '⇠',
+        '⇡', '⇢', '⇣', '⇤', '⇥', '⇦', '⇧', '⇨', '⇩', '⇪', '⇫', '⇬', '⇭', '⇮', '⇯', '⇰'
+    ].join('');
+
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    canvas.width = 256;
-    canvas.height = 24;
+    const charSize = 32; // Higher resolution for each character
+    const mapSize = 16;
+    canvas.width = charSize * mapSize;
+    canvas.height = charSize * mapSize;
+
     ctx.fillStyle = 'white';
-    ctx.font = '24px monospace';
-    ctx.fillText(charMap, 0, 20);
+    ctx.font = `${charSize * 0.8}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < 256; i++) {
+        const char = charMap[i] || ' ';
+        const x = (i % mapSize) * charSize + charSize / 2;
+        const y = Math.floor(i / mapSize) * charSize + charSize / 2;
+        ctx.fillText(char, x, y);
+    }
+
     const charMapTexture = new THREE.CanvasTexture(canvas);
-    charMapTexture.minFilter = THREE.NearestFilter;
-    charMapTexture.magFilter = THREE.NearestFilter;
+    charMapTexture.minFilter = THREE.LinearFilter;
+    charMapTexture.magFilter = THREE.LinearFilter;
 
     const asciiUniforms = {
       u_scene: { value: renderTarget.texture },
@@ -136,9 +129,7 @@
 
 <div class="container" bind:this={container} />
 
-<div class="input-container">
-  <input type="text" bind:value={formula} on:change={updateFormula} placeholder="e.g., z*z + c" />
-</div>
+
 
 <style>
   .container {
@@ -150,33 +141,5 @@
     overflow: hidden;
   }
 
-  .input-container {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
-  }
-
-  input {
-    background-color: rgba(20, 20, 20, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #eee;
-    font-family: 'Courier New', Courier, monospace;
-    padding: 10px 15px;
-    border-radius: 5px;
-    text-align: center;
-    font-size: 1.2em;
-    outline: none;
-    transition: all 0.2s ease;
-  }
-
-  input:focus {
-    border-color: rgba(255, 255, 255, 0.7);
-    background-color: rgba(0, 0, 0, 0.8);
-  }
-
-  input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
+  
 </style>
