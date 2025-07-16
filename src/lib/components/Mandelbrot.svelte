@@ -14,6 +14,7 @@
 
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
     const clock = new THREE.Clock();
@@ -48,7 +49,8 @@
             u_time: { value: 0.0 },
             u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
             u_offset: { value: interestingPoints[startIndex] },
-            u_opacity: { value: 1.0 }
+            u_opacity: { value: 1.0 },
+            u_color_offset: { value: Math.random() }
         };
 
         const material = new THREE.ShaderMaterial({
@@ -78,7 +80,8 @@
     layers[0].plane.visible = true;
 
     // Create a render target to hold the Mandelbrot texture
-    const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    const renderTarget = new THREE.WebGLRenderTarget(window.innerWidth * dpr, window.innerHeight * dpr);
 
     // ASCII Scene (Pass 2)
     const asciiScene = new THREE.Scene();
@@ -88,7 +91,7 @@
     const charMap = '`.,\':;!|i-_~"^<>()[]{}?r/\*17JczunvjxtfL\CYE52F3Z469APX0$&%#@WMB'.split('').join(' ');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    const fontSize = 24;
+    const fontSize = 32; // Increased font size for crisper characters
     const charCount = (charMap.length + 1) / 2;
 
     canvas.width = charCount * fontSize;
@@ -169,8 +172,10 @@
     animate();
 
     const handleResize = () => {
+      const dpr = Math.min(window.devicePixelRatio, 2);
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderTarget.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(dpr);
+      renderTarget.setSize(window.innerWidth * dpr, window.innerHeight * dpr);
       layers[0].uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
       layers[1].uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
       asciiUniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);

@@ -4,6 +4,7 @@ uniform float u_time;
 
 uniform vec2 u_offset;
 uniform float u_opacity;
+uniform float u_color_offset;
 const int MAX_ITER = 500;
 
 // HSV to RGB color conversion
@@ -39,7 +40,7 @@ void main() {
     } else {
         // Outside the set: the main vibrant coloring
         float i_smooth = i + 1.0 - log(log(length(z))) / log(2.0);
-        float hue = fract(i_smooth * 0.015 + u_time * 0.02);
+        float hue = fract(i_smooth * 0.015 + u_time * 0.02 + u_color_offset);
         float saturation = 0.9;
         float value = 0.9;
         color = hsv2rgb(vec3(hue, saturation, value));
