@@ -21,9 +21,19 @@
     // Mandelbrot Scene (Pass 1)
     const mandelbrotScene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const interestingPoints = [
+        new THREE.Vector2(-0.743643887037151, 0.131825904205330), // Seahorse Valley
+        new THREE.Vector2(-0.16, 1.0405), // A nice spiral
+        new THREE.Vector2(0.274, 0.006), // A detailed region
+        new THREE.Vector2(-1.749, 0.001), // A minibrot
+        new THREE.Vector2(0.42, 0.21) // Another interesting spot
+    ];
+    const randomPoint = interestingPoints[Math.floor(Math.random() * interestingPoints.length)];
+
     const mandelbrotUniforms = {
       u_time: { value: 0.0 },
       u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+      u_offset: { value: randomPoint }
     };
     const mandelbrotMaterial = new THREE.ShaderMaterial({
       vertexShader: mandelbrotVert,
