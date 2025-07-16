@@ -30,7 +30,7 @@
 		"svelte-check": "^4.0.0",
 		"typescript": "^5.0.0",
 		"typescript-eslint": "^8.20.0",
-		"vite": "^7.0.4"
+		"vite": "^5.0.0"
 	},
 	"dependencies": {
 		"@types/three": "^0.178.1",
