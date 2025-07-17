@@ -103,8 +103,8 @@
     const asciiScene = new THREE.Scene();
 
     // --- High-Resolution Character Map Generation ---
-    // New 'hacker/leet' character set, sorted by visual density
-    const charMap = '`.,\':;!|i-_~"^<>()[]{}?r/\*17JczunvjxtfL\CYE52F3Z469APX0$&%#@WMB'.split('').join(' ');
+    // Extended artistic ASCII character set for high detail
+    const charMap = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,^`\'.'.split('').join(' ');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
     const fontSize = 32; // Increased font size for crisper characters
