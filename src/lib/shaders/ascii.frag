@@ -2,9 +2,16 @@ varying vec2 vUv;
 uniform sampler2D u_scene;
 uniform sampler2D u_char_map;
 uniform vec2 u_resolution;
+uniform float u_time;
+uniform float u_fade_progress; // 0.0 = no fade, 1.0 = full fade
 
 const float CHAR_COUNT = 65.0; // Number of characters in our map
 const vec2 CHAR_SIZE = vec2(10.0, 16.0); // The size of each character cell on screen
+
+// Pseudo-random function for matrix effects
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
 
 float get_brightness(vec3 c) {
     return dot(c, vec3(0.2126, 0.7152, 0.0722));

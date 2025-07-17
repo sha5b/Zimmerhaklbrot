@@ -42,7 +42,24 @@
     ];
     let activeLayer = 0;
     const cycleDuration = 20; // seconds
-    const fadeDuration = 5; // seconds
+    const fadeDuration = 1.5; // seconds - much shorter for less visible fade
+    let currentPointIndex = Math.floor(Math.random() * interestingPoints.length);
+    let skipAttempts = 0;
+    const maxSkipAttempts = 3;
+    
+    // Function to detect if we're zooming into a boring/black region
+    function isBoringRegion(point: THREE.Vector2, zoomLevel: number): boolean {
+        // Simple heuristic: check if point is too close to main bulb center
+        const mainBulbDistance = point.distanceTo(new THREE.Vector2(-0.5, 0.0));
+        const miniBulbDistance = point.distanceTo(new THREE.Vector2(-1.0, 0.0));
+        
+        // At high zoom levels, avoid points too close to main features
+        if (zoomLevel < 0.001) {
+            return mainBulbDistance < 0.1 || miniBulbDistance < 0.05;
+        }
+        
+        return false;
+    }
 
     function createMandelbrotLayer(startIndex: number) {
         const uniforms = {
@@ -71,11 +88,10 @@
         return (currentIndex + 1) % interestingPoints.length;
     }
 
-    // Initialize layers
-    const initialIndex = Math.floor(Math.random() * interestingPoints.length);
+    // Initialize layers with random starting points
     const layers = [
-        createMandelbrotLayer(initialIndex),
-        createMandelbrotLayer(getNextPointIndex(initialIndex))
+        createMandelbrotLayer(currentPointIndex),
+        createMandelbrotLayer(getNextPointIndex(currentPointIndex))
     ];
     layers[0].plane.visible = true;
 
@@ -130,6 +146,21 @@
       mainLayer.uniforms.u_time.value += delta;
 
       const cycleTime = mainLayer.uniforms.u_time.value;
+      const currentZoom = Math.pow(0.70, cycleTime);
+      
+      // Check if current region is boring and skip if needed
+      if (cycleTime > 5.0 && skipAttempts < maxSkipAttempts) {
+          const currentPoint = mainLayer.uniforms.u_offset.value;
+          if (isBoringRegion(currentPoint, currentZoom)) {
+              // Skip to next point immediately
+              currentPointIndex = getNextPointIndex(currentPointIndex);
+              mainLayer.uniforms.u_offset.value = interestingPoints[currentPointIndex].clone();
+              mainLayer.uniforms.u_time.value = 0;
+              mainLayer.uniforms.u_color_offset.value = Math.random();
+              skipAttempts++;
+              return; // Skip this frame
+          }
+      }
 
       // Check if it's time to start the cross-fade
       if (cycleTime > cycleDuration - fadeDuration && !secondaryLayer.plane.visible) {
@@ -139,11 +170,13 @@
           secondaryLayer.uniforms.u_opacity.value = 0;
       }
 
-      // Handle the cross-fade
+      // Handle the new background fade-in approach
       if (secondaryLayer.plane.visible) {
           secondaryLayer.uniforms.u_time.value += delta;
           const fadeProgress = (cycleTime - (cycleDuration - fadeDuration)) / fadeDuration;
-          mainLayer.uniforms.u_opacity.value = 1.0 - fadeProgress;
+
+          // New behavior: mainLayer stays fully opaque, fade in secondaryLayer underneath
+          mainLayer.uniforms.u_opacity.value = 1.0;
           secondaryLayer.uniforms.u_opacity.value = fadeProgress;
 
           // Check if the fade is complete
@@ -152,12 +185,25 @@
               mainLayer.plane.visible = false;
               mainLayer.uniforms.u_time.value = 0;
               mainLayer.uniforms.u_opacity.value = 1.0;
-              // Get a new point for the now-hidden layer
-              // This creates the "seamless" illusion by making the new location a minibrot of the old one.
-              const currentPoint = secondaryLayer.uniforms.u_offset.value;
-              const newPoint = new THREE.Vector2(-0.745428, 0.113009); // A well-known minibrot location
-              mainLayer.uniforms.u_offset.value = currentPoint.clone().add(newPoint.divideScalar(Math.pow(2.0, cycleDuration * 0.5)));
+
+              // Prepare the now-background layer for the next transition
+              currentPointIndex = getNextPointIndex(currentPointIndex);
+              const nextPointIndex = getNextPointIndex(currentPointIndex);
+
+              // Ensure we're not picking a boring region
+              let attempts = 0;
+              let targetPoint = interestingPoints[nextPointIndex];
+              while (attempts < 5 && isBoringRegion(targetPoint, 1.0)) {
+                  currentPointIndex = getNextPointIndex(currentPointIndex);
+                  targetPoint = interestingPoints[getNextPointIndex(currentPointIndex)];
+                  attempts++;
+              }
+
+              // Set the hidden (background) layer to fly to the next interesting point
+              mainLayer.uniforms.u_offset.value = targetPoint.clone();
               mainLayer.uniforms.u_color_offset.value = Math.random();
+
+              skipAttempts = 0; // Reset skip attempts for new cycle
 
               activeLayer = 1 - activeLayer;
           }
