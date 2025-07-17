@@ -20,12 +20,16 @@ void main() {
 
     // Faster zoom speed
     float zoom = pow(0.70, u_time);
-    vec2 c = uv * zoom + u_offset;
+    vec2 c = u_offset + uv * zoom;
     vec2 z = vec2(0.0);
-    float i = 0.0;
 
+    // Add a time-based perturbation to 'c' to make the fractal 'alive'
+    float time_factor = 0.0005 * sin(u_time * 0.3);
+    vec2 c_perturbed = c + vec2(time_factor, time_factor);
+
+    float i = 0.0;
     for (int j = 0; j < MAX_ITER; j++) {
-        z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
+        z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c_perturbed;
         if (dot(z, z) > 16.0) { // Increased escape radius for more detail
             i = float(j);
             break;
@@ -41,7 +45,6 @@ void main() {
     } else {
         // Outside the set: zoom-responsive, evolving color palette
         float i_smooth = i + 1.0 - log(log(length(z))) / log(2.0);
-        float zoom = pow(0.70, u_time);
         float logZoom = -log(zoom); // Higher values = more zoomed in
         float t = u_time * 0.1 + u_color_offset;
         float zoom_factor = logZoom * 0.2;
