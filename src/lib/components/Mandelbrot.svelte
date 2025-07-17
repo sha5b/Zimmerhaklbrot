@@ -107,7 +107,7 @@
     const charMap = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,^`\'.'.split('').join(' ');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    const fontSize = 32; // Increased font size for crisper characters
+    const fontSize = 64; // Further increased font size for maximum crispness
     const charCount = (charMap.length + 1) / 2;
 
     canvas.width = charCount * fontSize;
@@ -120,8 +120,8 @@
     ctx.fillText(charMap, canvas.width / 2, canvas.height / 2);
 
     const charMapTexture = new THREE.CanvasTexture(canvas);
-    charMapTexture.minFilter = THREE.LinearFilter;
-    charMapTexture.magFilter = THREE.LinearFilter;
+    charMapTexture.minFilter = THREE.NearestFilter;
+    charMapTexture.magFilter = THREE.NearestFilter;
 
     const asciiUniforms = {
       u_scene: { value: renderTarget.texture },
