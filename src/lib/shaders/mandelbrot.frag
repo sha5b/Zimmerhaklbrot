@@ -39,19 +39,26 @@ void main() {
         vec3 base_color = hsv2rgb(vec3(fract(u_time * 0.05 + u_color_offset), 0.8, 0.3));
         color = base_color * (0.6 + pulse * 0.4);
     } else {
-        // Outside the set: the main vibrant coloring
+        // Outside the set: zoom-responsive, evolving color palette
         float i_smooth = i + 1.0 - log(log(length(z))) / log(2.0);
-        // Outside the set: sophisticated, evolving sine-wave based color palette
+        float zoom = pow(0.70, u_time);
+        float logZoom = -log(zoom); // Higher values = more zoomed in
         float t = u_time * 0.1 + u_color_offset;
-        vec3 col1 = vec3(0.5, 0.5, 0.5); // Center of color
-        vec3 col2 = vec3(0.5, 0.5, 0.5); // Amplitude of color
-
-        // Make frequency and phase evolve over time for a more dynamic palette
+        float zoom_factor = logZoom * 0.2;
         float time_slow = u_time * 0.03;
-        vec3 col3 = vec3(1.0, 1.0, 0.9) + 0.2 * sin(time_slow * vec3(1.0, 1.3, 1.5)); // Frequency
-        vec3 col4 = vec3(0.0, 0.15, 0.2) + 0.1 * cos(time_slow * vec3(1.2, 1.4, 1.6)); // Phase
 
-        float pal_time = i_smooth * 0.03 + t;
+        // Palette center and amplitude shift with zoom
+        vec3 col1 = vec3(0.5, 0.5, 0.5) + 0.2 * sin(zoom_factor + vec3(0.0, 1.0, 2.0));
+        vec3 col2 = vec3(0.4 + 0.2 * sin(zoom_factor), 0.4 + 0.2 * cos(zoom_factor * 1.3), 0.5 + 0.2 * sin(zoom_factor * 1.7));
+
+        // Frequency and phase evolve with both time and zoom
+        vec3 col3 = vec3(1.0 + zoom_factor * 0.5, 1.0 + zoom_factor * 0.7, 0.9 + zoom_factor * 0.3) + 
+                   0.2 * sin(time_slow * vec3(1.0, 1.3, 1.5));
+        vec3 col4 = vec3(zoom_factor * 0.3, 0.15 + zoom_factor * 0.1, 0.2 + zoom_factor * 0.2) + 
+                   0.1 * cos(time_slow * vec3(1.2, 1.4, 1.6));
+
+        // Palette time also modulated by zoom
+        float pal_time = i_smooth * (0.03 + zoom_factor * 0.02) + t;
         color = col1 + col2 * cos(6.28318 * (col3 * pal_time + col4));
     }
     gl_FragColor = vec4(color, u_opacity);
