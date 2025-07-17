@@ -6,7 +6,7 @@ uniform float u_time;
 uniform float u_fade_progress; // 0.0 = no fade, 1.0 = full fade
 
 const float CHAR_COUNT = 65.0; // Number of characters in our map
-const vec2 CHAR_SIZE = vec2(10.0, 16.0); // The size of each character cell on screen
+const vec2 CHAR_SIZE = vec2(6.0, 10.0); // The size of each character cell on screen (smaller = more detail)
 
 // Pseudo-random function for matrix effects
 float random(vec2 st) {
