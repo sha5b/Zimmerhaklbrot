@@ -1,33 +1,47 @@
-# sv
+# Zimmerhaklbrot - A Mandelbrot Set Visualizer
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This project is a web-based, animated visualizer for the Mandelbrot set, built with SvelteKit and Three.js. It dynamically explores different "interesting points" of the Mandelbrot set, creating a seamless and colorful journey through its intricate fractal landscapes. The visualization is rendered using custom GLSL shaders for high performance.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+*   **Animated Exploration:** Automatically cycles through a curated list of fascinating locations within the Mandelbrot set.
+*   **Smooth Transitions:** Uses fading effects to smoothly transition between different views.
+*   **WebGL Shaders:** Leverages custom vertex and fragment shaders for rendering the Mandelbrot set and applying effects.
+*   **ASCII Art Mode:** Includes an alternative ASCII art fragment shader for a different visual style.
 
-```bash
-# create a new project in the current directory
-npx sv create
+## Tech Stack
 
-# create a new project in my-app
-npx sv create my-app
-```
+*   **Framework:** [SvelteKit](https://kit.svelte.dev/)
+*   **3D Graphics:** [Three.js](https://threejs.org/)
+*   **Language:** TypeScript
+*   **Shaders:** GLSL
 
-## Developing
+## Getting Started
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+### Prerequisites
 
-```bash
-npm run dev
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+### Installation & Development
 
-## Building
+1.  Clone the repository.
+2.  Install the dependencies:
+    ```bash
+    npm install
+    ```
 
-To create a production version of your app:
+3.  Start the development server:
+    ```bash
+    npm run dev
+
+    # or to open in a new browser tab
+    npm run dev -- --open
+    ```
+    The application will be available at `http://localhost:5173` by default.
+
+## Building for Production
+
+To create a production version of the app:
 
 ```bash
 npm run build
@@ -35,4 +49,4 @@ npm run build
 
 You can preview the production build with `npm run preview`.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.

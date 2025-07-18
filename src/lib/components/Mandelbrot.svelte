@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as THREE from 'three';
+  import { interestingPoints } from '$lib/utils/interestingPoints';
   import mandelbrotVert from '$lib/shaders/mandelbrot.vert?raw';
   import mandelbrotFrag from '$lib/shaders/mandelbrot.frag?raw';
   import asciiFrag from '$lib/shaders/ascii.frag?raw';
@@ -23,53 +24,6 @@
     const mandelbrotScene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const planeGeometry = new THREE.PlaneGeometry(2, 2);
-    const interestingPoints = [
-        new THREE.Vector2(-0.743643887037151, 0.131825904205330),   // 1. Seahorse Valley
-        new THREE.Vector2(-0.160, 1.0405),                          // 2. Main Spiral
-        new THREE.Vector2(0.274, 0.006),                            // 3. Triple Island
-        new THREE.Vector2(-1.749, 0.001),                           // 4. Minibrot Sanctuary
-        new THREE.Vector2(0.42, 0.21),                              // 5. Nebula Cluster
-        new THREE.Vector2(-0.75, 0.11),                             // 6. Triple Spiral Valley
-        new THREE.Vector2(-1.25066, 0.3775),                        // 7. Celestial Spiral
-        new THREE.Vector2(0.282, 0.53),                             // 8. Antennae Spire
-        new THREE.Vector2(-0.4, 0.6),                               // 9. Elephant Valley
-        new THREE.Vector2(-1.77, 0.0),                              // 10. Secondary Minibrot
-        new THREE.Vector2(-0.158, -1.034),                         // 11. Mirrored Abyss
-        new THREE.Vector2(0.355, 0.355),                            // 12. Quad-Spiral Galaxy
-        new THREE.Vector2(-0.77568377, 0.13646737),                 // 13. Deep Seahorse
-        new THREE.Vector2(-0.745428, 0.113009),                     // 14. Classic Minibrot
-        new THREE.Vector2(0.275, 0.48),                             // 15. Starfish Cavern
-        new THREE.Vector2(-0.743643887037151, 0.131825904205330),   // 16. Seahorse Valley (Classic)
-        new THREE.Vector2(-0.8, 0.156),                             // 17. Mandelbrot's Heart
-        new THREE.Vector2(0.285, 0.01),                             // 18. The Main Island
-        new THREE.Vector2(-1.401155, 1.79e-8),                      // 19. The Needle
-        new THREE.Vector2(-0.1528, 1.0397),                         // 20. The Scepter
-        new THREE.Vector2(0.34, -0.05),                             // 21. Southern Island
-        new THREE.Vector2(-0.748, 0.099),                           // 22. Seahorse Tail
-        new THREE.Vector2(-1.11, 0.22),                             // 23. Spiral Antenna
-        new THREE.Vector2(0.45, 0.1428),                            // 24. Eastern Swirl
-        new THREE.Vector2(-0.59, -0.66),                            // 25. Lower Mini-Mandel
-        new THREE.Vector2(-1.78, 0.0001),                           // 26. Far West Minibrot
-        new THREE.Vector2(0.38, 0.32),                              // 27. Quad-Spiral
-        new THREE.Vector2(-0.73, -0.41),                            // 28. Southern Seahorse
-        new THREE.Vector2(0.0, 0.65),                               // 29. North Star
-        new THREE.Vector2(-1.94, 0.0),                              // 30. Ghost of Mandelbrot
-        new THREE.Vector2(-0.743643887037151, 0.131825904205330),   // 31. Deep Dive Seahorse
-        new THREE.Vector2(-0.160, 1.0405),                          // 32. Another Spiral
-        new THREE.Vector2(0.274, 0.006),                            // 33. Island Chain
-        new THREE.Vector2(-1.749, 0.001),                           // 34. Tinybrot
-        new THREE.Vector2(0.42, 0.21),                              // 35. Star Cluster
-        new THREE.Vector2(-0.75, 0.11),                             // 36. Another Triple Spiral
-        new THREE.Vector2(-1.25066, 0.3775),                        // 37. Another Celestial Spiral
-        new THREE.Vector2(0.282, 0.53),                             // 38. Another Antennae
-        new THREE.Vector2(-0.4, 0.6),                               // 39. Another Elephant Valley
-        new THREE.Vector2(-1.77, 0.0),                              // 40. Another Secondary Minibrot
-        new THREE.Vector2(-0.158, -1.034),                         // 41. Another Mirrored Abyss
-        new THREE.Vector2(0.355, 0.355),                            // 42. Another Quad-Spiral Galaxy
-        new THREE.Vector2(-0.77568377, 0.13646737),                 // 43. Another Deep Seahorse
-        new THREE.Vector2(-0.745428, 0.113009),                     // 44. Another Classic Minibrot
-        new THREE.Vector2(0.275, 0.48)                              // 45. Another Starfish Cavern
-    ];
     let activeLayer = 0;
     const cycleDuration = 20; // seconds
     const fadeDuration = 5; // seconds
@@ -80,7 +34,8 @@
             u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
             u_offset: { value: interestingPoints[startIndex] },
             u_opacity: { value: 1.0 },
-            u_color_offset: { value: Math.random() }
+            u_color_offset: { value: Math.random() },
+            u_rotation: { value: 0.0 }
         };
 
         const material = new THREE.ShaderMaterial({
@@ -98,10 +53,12 @@
     }
 
     function setNextInterestingPoint() {
+        // This function sets the next point on the layer that is currently *not* active.
+        const inactiveLayer = 1 - activeLayer;
         const randomIndex = Math.floor(Math.random() * interestingPoints.length);
         const point = interestingPoints[randomIndex];
-        layers[activeLayer].uniforms.u_offset.value = point;
-        layers[activeLayer].uniforms.u_color_offset.value = Math.random();
+        layers[inactiveLayer].uniforms.u_offset.value = point;
+        layers[inactiveLayer].uniforms.u_color_offset.value = Math.random();
     }
 
     // Initialize layers
@@ -156,6 +113,13 @@
       requestAnimationFrame(animate);
 
       const delta = clock.getDelta();
+      const elapsedTime = clock.getElapsedTime();
+
+      // Update rotation for all layers
+      layers.forEach(layer => {
+        layer.uniforms.u_rotation.value = elapsedTime * 0.1;
+      });
+
       const mainLayer = layers[activeLayer];
       const secondaryLayer = layers[1 - activeLayer];
 
@@ -181,17 +145,16 @@
 
           // Check if the fade is complete
           if (fadeProgress >= 1.0) {
-              // Switch active layer
+              // The fade is complete. Reset the layer that just faded out.
               mainLayer.plane.visible = false;
               mainLayer.uniforms.u_time.value = 0;
-              mainLayer.uniforms.u_opacity.value = 1.0;
-              // Get a new point for the now-hidden layer
-              // This creates the "seamless" illusion by making the new location a minibrot of the old one.
-              const nextPointIndex = Math.floor(Math.random() * interestingPoints.length);
-              mainLayer.uniforms.u_offset.value = interestingPoints[nextPointIndex];
-              mainLayer.uniforms.u_color_offset.value = Math.random();
+              mainLayer.uniforms.u_opacity.value = 1.0; // Reset for its next use
 
+              // Switch to the new active layer.
               activeLayer = 1 - activeLayer;
+
+              // Prepare the now-hidden layer with a new point for the next cycle.
+              setNextInterestingPoint();
           }
       }
 

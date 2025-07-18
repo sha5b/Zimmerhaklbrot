@@ -5,6 +5,7 @@ uniform float u_time;
 uniform vec2 u_offset;
 uniform float u_opacity;
 uniform float u_color_offset;
+uniform float u_rotation;
 const int MAX_ITER = 500;
 
 // HSV to RGB color conversion
@@ -18,14 +19,20 @@ void main() {
     vec2 uv = (vUv - 0.5) * 2.0;
     uv.x *= u_resolution.x / u_resolution.y;
 
+    // Apply rotation
+    float s = sin(u_rotation);
+    float c = cos(u_rotation);
+    mat2 rot = mat2(c, -s, s, c);
+    uv = rot * uv;
+
     // Faster zoom speed
     float zoom = pow(0.70, u_time);
-    vec2 c = u_offset + uv * zoom;
+    vec2 c_coord = u_offset + uv * zoom;
     vec2 z = vec2(0.0);
 
     // Add a time-based perturbation to 'c' to make the fractal 'alive'
     float time_factor = 0.0005 * sin(u_time * 0.3);
-    vec2 c_perturbed = c + vec2(time_factor, time_factor);
+    vec2 c_perturbed = c_coord + vec2(time_factor, time_factor);
 
     float i = 0.0;
     for (int j = 0; j < MAX_ITER; j++) {
